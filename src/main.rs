@@ -1,11 +1,12 @@
 extern crate pancurses;
-
 use pancurses::{initscr, endwin, Input, noecho, curs_set};
+use std::time::{Duration, SystemTime};
 
 const HEAD_SYMBOL: char = 'O';
 const WORMMAN: char = 'S';
 const LADDER_UP: char = 'H';
 const LADDER_DOWN: char = ' ';
+const AIR: char = ' ';
 const LAMP: char = '+';
 const CHAIN: char = '|';
 const CHAIN_LEFT: char = '/';
@@ -30,9 +31,16 @@ pub struct Wormman {
     y: i32,
 }
 
+pub struct Reqs {
+    lamp_l: bool,
+    lamp_r: bool,
+    window_broken: bool,
+}
+
 pub struct GameState {
     pub hero: Hero,
     pub wormman: Wormman,
+    pub reqs: Reqs,
 }
 
 impl GameState {
@@ -45,6 +53,11 @@ impl GameState {
             wormman: Wormman {
                 x: 10,
                 y: 19,
+            },
+            reqs: Reqs {
+                lamp_l: false,
+                lamp_r: false,
+                window_broken: false,
             },
         }
     }
@@ -72,7 +85,7 @@ fn main() {
     // Draw initial position
     window.mvaddch(state.hero.y, state.hero.x, HEAD_SYMBOL);
     window.refresh();
-    
+    window.nodelay(true);
    /* let i = 0;
     loop {
         window.mvaddch(b, i, FLOOR_TILE); 
@@ -86,6 +99,10 @@ fn main() {
 
             //thread::sleep(Duration::from_millis(difficulty.get_refresh_delay()));
     let mut wormman_left = true;
+    
+    let mut last_wormman_update = SystemTime::now();
+    let wormman_interval = Duration::from_millis(500);
+
 
     loop {
         if state.hero.y == b {
@@ -109,9 +126,25 @@ fn main() {
             window.hline(FLOOR_TILE, 21);
             window.mvaddch(b-1, a+14, WALL);
             window.mvaddch(b-1, a-8, WALL);
-            window.mvaddch(b-2, a+12, LAMP);
+            window.mvaddch(b-2, a+12, LAMP); 
+            if state.hero.y == b-2 {
+                if state.hero.x == a+11 || state.hero.x == a+13 {
+            window.mvaddch(b-2, a+12, AIR);
+                } 
+            }
             window.mvaddch(b-3, a+12, CHAIN);
-            window.mvaddch(b-2, a+14, WINDOW);
+            if state.hero.y == b-2 {
+                if state.hero.x == a+11 {
+                    window.mvaddch(b-3, a+12, CHAIN_LEFT);
+                 } else if state.hero.x ==a+13 {
+                    window.mvaddch(b-3, a+12, CHAIN_RIGHT);
+                 }
+            }
+            if !state.reqs.window_broken {
+                window.mvaddch(b-2, a+14, WINDOW);
+            } else {
+                window.mvaddch(b-2, a+14, AIR);
+            }
             window.mvaddch(b-3, a+14, WALL);
             window.mvaddch(b-1, a+5, LADDER_DOWN);
             window.mvaddch(state.wormman.y, state.wormman.x, WORMMAN);
@@ -145,10 +178,48 @@ fn main() {
         if state.wormman.x > a+12 {
             wormman_left = true;
         }
-        if wormman_left {
-           state.wormman.x -= 1;
-        } else {
-            state.wormman.x += 1;
+        if last_wormman_update.elapsed().unwrap_or(Duration::from_secs(0)) >= wormman_interval {
+            if wormman_left {
+               state.wormman.x -= 1;
+            } else {
+                state.wormman.x += 1;
+            }
+            if state.hero.y == b-2 {
+                if state.hero.x >= a+11 && state.hero.x <= a+13 {
+                    if state.hero.x == a+13 {
+                    if state.reqs.lamp_l == false {
+                        state.reqs.lamp_r = true;
+                        state.hero.x = a+12;
+            window.mvaddch(b-2, a+11, AIR);
+            window.mvaddch(b-2, a+13, AIR);
+                    } else {
+                        state.hero.x = a+16;
+                        state.reqs.window_broken = true;
+                       // state.hero.story_text = "You jump off the lamp and through the window in the wall. You fall on the floor in a dark room.".to_string(); 
+                        state.reqs.lamp_r = false;
+                        state.reqs.lamp_l = false;
+                    }
+            window.mvaddch(b-2, a+11, AIR);
+            window.mvaddch(b-2, a+13, AIR);
+                    }
+                }
+                if state.hero.x == a+11 {
+                    if state.reqs.lamp_r {
+                        state.reqs.lamp_l= true;
+                        state.hero.x = a+12;
+            window.mvaddch(b-2, a+13, AIR);
+            window.mvaddch(b-2, a+11, AIR);
+                    } else {
+                        state.hero.x = a+12;
+            window.mvaddch(b-2, a+11, AIR);
+            window.mvaddch(b-2, a+13, AIR);
+           // window.mvaddch(b-2, a+13, AIR);
+                    }
+                }
+            }
+
+            last_wormman_update = SystemTime::now();
+
         }
 
         // Handle window resize
@@ -184,7 +255,12 @@ fn main() {
                         if state.hero.x > a-7 {
                         state.hero.x -= 1;
                         }
-                    } else if state.hero.y == b-4 {
+                    } else if state.hero.y == b-2 {
+                        if state.hero.x > a+11 {
+                        state.hero.x -= 1;
+                        }
+                    }
+                    else if state.hero.y == b-4 {
                         if state.hero.x > a+6 {
                             state.hero.x -= 1;
                         }
@@ -192,6 +268,10 @@ fn main() {
                     c if c == RIGHT_KEY  => if state.hero.y == b || state.hero.y == b - 1 { 
                         if state.hero.x < a + 13 {
                             state.hero.x += 1;
+                        }
+                    } else if state.hero.y == b-2 {
+                        if state.hero.x < a+13 {
+                        state.hero.x += 1;
                         }
                     } else if state.hero.y == b-4 {
                         if state.hero.x < a+18 {
