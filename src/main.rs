@@ -1,5 +1,5 @@
 extern crate pancurses;
-use pancurses::{initscr, endwin, Input, noecho, curs_set};
+use pancurses::{initscr, endwin, Input, noecho, curs_set, Window};
 use std::time::{Duration, SystemTime};
 
 const HEAD_SYMBOL: char = 'O';
@@ -30,6 +30,7 @@ pub struct Hero {
 pub struct Wormman {
     x: i32,
     y: i32,
+    wormman_left: bool,
 }
 
 pub struct Reqs {
@@ -54,6 +55,7 @@ impl GameState {
             wormman: Wormman {
                 x: 10,
                 y: 19,
+                wormman_left: true,
             },
             reqs: Reqs {
                 lamp_l: false,
@@ -95,76 +97,15 @@ fn main() {
 
     //Game loop
     loop {
-        //Draw the currently visible stage
-        if state.hero.y == b {
-            window.mv(state.hero.y, a-1);
-            window.hline(FLOOR_TILE, 15);
-            if !wormman_left {
-            if state.wormman.x == a+6 {
-                window.mvaddch(state.wormman.y, state.wormman.x, LADDER_DOWN);
-            } else {
-            window.mvaddch(state.wormman.y, state.wormman.x -1, FLOOR_TILE);
-            }
-            } else {
-                if state.wormman.x == a+4 {
-                window.mvaddch(state.wormman.y, state.wormman.x, LADDER_DOWN);
-            } else {
-                window.mvaddch(state.wormman.y, state.wormman.x +1, FLOOR_TILE);
-                }
-            }
-        } else if state.hero.y == b-1 || state.hero.y == b-2 || state.hero.y == b-3 || state.hero.y == b-4 {
-            window.mv(b-1, a - 7);
-            window.hline(FLOOR_TILE, 21);
-            window.mvaddch(b-1, a+14, WALL);
-            window.mvaddch(b-1, a-8, WALL);
-            window.mvaddch(b-2, a+12, LAMP); 
-            window.mvaddch(b-1, a-5, DOOR);
-            if state.hero.y == b-2 {
-                if state.hero.x == a+11 || state.hero.x == a+13 {
-            window.mvaddch(b-2, a+12, AIR);
-                } 
-            }
-            window.mvaddch(b-3, a+12, CHAIN);
-            if state.hero.y == b-2 {
-                if state.hero.x == a+11 {
-                    window.mvaddch(b-3, a+12, CHAIN_LEFT);
-                 } else if state.hero.x ==a+13 {
-                    window.mvaddch(b-3, a+12, CHAIN_RIGHT);
-                 }
-            }
-            if !state.reqs.window_broken {
-                window.mvaddch(b-2, a+14, WINDOW);
-            } else {
-                window.mvaddch(b-2, a+14, AIR);
-            }
-            window.mvaddch(b-3, a+14, WALL);
-            window.mvaddch(b-1, a+5, LADDER_DOWN);
-            window.mvaddch(state.wormman.y, state.wormman.x, WORMMAN);
-        }
-        if state.hero.y == b-1 && state.hero.x == a-5 {
-            window.mvaddch(b, a-4, FLOOR_TILE);
-        } 
-        window.mv(state.hero.y, state.hero.x);
-        window.mvaddch(b, a + 5, LADDER_UP);
-        if state.hero.y == b - 4 {
-            window.mv(state.hero.y, a+6);
-            window.hline(FLOOR_TILE, 13);
-            window.mvaddch(b-4, a+12, LADDER_DOWN);
-            window.mvaddch(b-4, a+5, LEFT_ROOF);
-            window.mvaddch(b-4, a+19, RIGHT_ROOF);
-        }
-        window.mvaddch(b, a-2, WALL);
-        window.mvaddch(b, a+14, WALL);
-        window.mvaddch(state.hero.y, state.hero.x, HEAD_SYMBOL);
+        build_scene(&mut state, &window, a, b);
 
-        //Control wormmen and other time based stage movements
         if state.wormman.y == state.hero.y {
             if wormman_left {
-                if state.wormman.x == state.hero.x || state.wormman.x == state.hero.x - 1 {
+                if state.wormman.x == state.hero.x || state.wormman.x == state.hero.x  {
                     break 
                 }
             } else {
-                if state.wormman.x == state.hero.x || state.wormman.x == state.hero.x + 1 {
+                if state.wormman.x == state.hero.x || state.wormman.x == state.hero.x  {
             break
         }
             }
@@ -175,6 +116,8 @@ fn main() {
         if state.wormman.x > a+12 {
             wormman_left = true;
         }
+
+        //Control wormmen and other time based stage movements
         if last_wormman_update.elapsed().unwrap_or(Duration::from_secs(0)) >= wormman_interval {
             if wormman_left {
                state.wormman.x -= 1;
@@ -308,6 +251,75 @@ fn main() {
         }
     }
     endwin();
+}
+
+pub fn build_scene(state: &mut GameState, window: &Window, a: i32, b: i32) {
+     //Draw the currently visible stage
+        if state.hero.y == b {
+            window.mv(state.hero.y, a-1);
+            window.hline(FLOOR_TILE, 15);
+           // if !state.wormman.wormman_left {
+            if state.wormman.x == a+5 {
+                window.mvaddch(state.wormman.y, state.wormman.x, LADDER_DOWN);
+            } else if state.wormman.x == a-5 {
+                window.mvaddch(state.wormman.y, state.wormman.x, DOOR);
+            } else {
+            //window.mvaddch(state.wormman.y, state.wormman.x -1, FLOOR_TILE);
+            window.mvaddch(state.wormman.y, state.wormman.x, FLOOR_TILE);
+            //window.mvaddch(state.wormman.y, state.wormman.x +1, FLOOR_TILE);
+            }
+           /* } else {
+                if state.wormman.x == a+5 {
+                window.mvaddch(state.wormman.y, state.wormman.x, LADDER_DOWN);
+            } else {
+                //window.mvaddch(state.wormman.y, state.wormman.x +1, FLOOR_TILE);
+                window.mvaddch(state.wormman.y, state.wormman.x, FLOOR_TILE);
+                }
+            }*/
+        } else if state.hero.y == b-1 || state.hero.y == b-2 || state.hero.y == b-3 || state.hero.y == b-4 {
+            window.mv(b-1, a - 7);
+            window.hline(FLOOR_TILE, 21);
+            window.mvaddch(b-1, a+14, WALL);
+            window.mvaddch(b-1, a-8, WALL);
+            window.mvaddch(b-2, a+12, LAMP); 
+            window.mvaddch(b-1, a-5, DOOR);
+            if state.hero.y == b-2 {
+                if state.hero.x == a+11 || state.hero.x == a+13 {
+            window.mvaddch(b-2, a+12, AIR);
+                } 
+            }
+            window.mvaddch(b-3, a+12, CHAIN);
+            if state.hero.y == b-2 {
+                if state.hero.x == a+11 {
+                    window.mvaddch(b-3, a+12, CHAIN_LEFT);
+                 } else if state.hero.x ==a+13 {
+                    window.mvaddch(b-3, a+12, CHAIN_RIGHT);
+                 }
+            }
+            if !state.reqs.window_broken {
+                window.mvaddch(b-2, a+14, WINDOW);
+            } else {
+                window.mvaddch(b-2, a+14, AIR);
+            }
+            window.mvaddch(b-3, a+14, WALL);
+            window.mvaddch(b-1, a+5, LADDER_DOWN);
+            window.mvaddch(state.wormman.y, state.wormman.x, WORMMAN);
+        }
+        if state.hero.y == b-1 && state.hero.x == a-5 {
+            window.mvaddch(b, a-4, FLOOR_TILE);
+        } 
+        window.mv(state.hero.y, state.hero.x);
+        window.mvaddch(b, a + 5, LADDER_UP);
+        if state.hero.y == b - 4 {
+            window.mv(state.hero.y, a+6);
+            window.hline(FLOOR_TILE, 13);
+            window.mvaddch(b-4, a+12, LADDER_DOWN);
+            window.mvaddch(b-4, a+5, LEFT_ROOF);
+            window.mvaddch(b-4, a+19, RIGHT_ROOF);
+        }
+        window.mvaddch(b, a-2, WALL);
+        window.mvaddch(b, a+14, WALL);
+        window.mvaddch(state.hero.y, state.hero.x, HEAD_SYMBOL);
 }
 
 //TODO: Move each part of main() to lib rs in different structs and functions
