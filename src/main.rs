@@ -14,6 +14,7 @@ const CHAIN_RIGHT: char = '\\';
 const WINDOW: char = 'I';
 const FLOOR_TILE: char = '_';
 const WALL: char = '|';
+const DOOR: char = 'D';
 const LEFT_ROOF: char = '/';
 const RIGHT_ROOF: char = '\\';
 const UP_KEY: char = 'w';
@@ -86,25 +87,15 @@ fn main() {
     window.mvaddch(state.hero.y, state.hero.x, HEAD_SYMBOL);
     window.refresh();
     window.nodelay(true);
-   /* let i = 0;
-    loop {
-        window.mvaddch(b, i, FLOOR_TILE); 
-        if i == max_x {
-            break
-        }
-   window.mvaddch(b-2, a+14, WALL);
-   window.mvaddch(b-3, a+14, WALL);
-    }*/
 
-
-            //thread::sleep(Duration::from_millis(difficulty.get_refresh_delay()));
     let mut wormman_left = true;
     
     let mut last_wormman_update = SystemTime::now();
     let wormman_interval = Duration::from_millis(500);
 
-
+    //Game loop
     loop {
+        //Draw the currently visible stage
         if state.hero.y == b {
             window.mv(state.hero.y, a-1);
             window.hline(FLOOR_TILE, 15);
@@ -127,6 +118,7 @@ fn main() {
             window.mvaddch(b-1, a+14, WALL);
             window.mvaddch(b-1, a-8, WALL);
             window.mvaddch(b-2, a+12, LAMP); 
+            window.mvaddch(b-1, a-5, DOOR);
             if state.hero.y == b-2 {
                 if state.hero.x == a+11 || state.hero.x == a+13 {
             window.mvaddch(b-2, a+12, AIR);
@@ -149,6 +141,9 @@ fn main() {
             window.mvaddch(b-1, a+5, LADDER_DOWN);
             window.mvaddch(state.wormman.y, state.wormman.x, WORMMAN);
         }
+        if state.hero.y == b-1 && state.hero.x == a-5 {
+            window.mvaddch(b, a-4, FLOOR_TILE);
+        } 
         window.mv(state.hero.y, state.hero.x);
         window.mvaddch(b, a + 5, LADDER_UP);
         if state.hero.y == b - 4 {
@@ -161,6 +156,8 @@ fn main() {
         window.mvaddch(b, a-2, WALL);
         window.mvaddch(b, a+14, WALL);
         window.mvaddch(state.hero.y, state.hero.x, HEAD_SYMBOL);
+
+        //Control wormmen and other time based stage movements
         if state.wormman.y == state.hero.y {
             if wormman_left {
                 if state.wormman.x == state.hero.x || state.wormman.x == state.hero.x - 1 {
@@ -213,13 +210,10 @@ fn main() {
                         state.hero.x = a+12;
             window.mvaddch(b-2, a+11, AIR);
             window.mvaddch(b-2, a+13, AIR);
-           // window.mvaddch(b-2, a+13, AIR);
                     }
                 }
             }
-
             last_wormman_update = SystemTime::now();
-
         }
 
         // Handle window resize
@@ -245,8 +239,16 @@ fn main() {
                 
                 // Update position based on keyi and position
                 match c_lower {
-                    c if (c == UP_KEY && state.hero.y == b && state.hero.x == a+5) || (c == UP_KEY && state.hero.y == b-1 && state.hero.x == a+12) || (c == UP_KEY && state.hero.y == b-2 && state.hero.x == a+12) || (c == UP_KEY && state.hero.y == b-3 && state.hero.x == a+12) => state.hero.y -= 1,
-                    c if (c == DOWN_KEY && state.hero.y == b-1 && state.hero.x == a+5) || (c == DOWN_KEY && state.hero.y == b-2 && state.hero.x == a+12) || (c == DOWN_KEY && state.hero.y == b-3 && state.hero.x == a+12) || (c == DOWN_KEY && state.hero.y == b-4 && state.hero.x == a+12) => state.hero.y += 1,
+                    c if c == UP_KEY => if (state.hero.y == b && state.hero.x == a+5) || (state.hero.y == b-1 && state.hero.x == a+12) || (state.hero.y == b-2 && state.hero.x == a+12) || (state.hero.y == b-3 && state.hero.x == a+12) { 
+                        state.hero.y -= 1 
+                    } else if state.hero.y == b+1 && state.hero.x == a-3 {
+                        state.hero.y = b-1;
+                        state.hero.x = a-5;
+                    },
+                    c if c == DOWN_KEY => if (state.hero.y == b-1 && state.hero.x == a+5) || (state.hero.y == b-2 && state.hero.x == a+12) || (state.hero.y == b-3 && state.hero.x == a+12) || (state.hero.y == b-4 && state.hero.x == a+12) { state.hero.y += 1 } else if state.hero.y == b-1 && state.hero.x == a-5 {
+                        state.hero.y = b+1;
+                        state.hero.x = a-3;
+                    },
                     c if c == LEFT_KEY => if state.hero.y == b { 
                         if state.hero.x > a-1  {
                             state.hero.x -= 1;
@@ -263,7 +265,9 @@ fn main() {
                     else if state.hero.y == b-4 {
                         if state.hero.x > a+6 {
                             state.hero.x -= 1;
-                        }
+                        } 
+                    } else if state.hero.y ==  b+1 {
+                        state.hero.x -=1
                     },
                     c if c == RIGHT_KEY  => if state.hero.y == b || state.hero.y == b - 1 { 
                         if state.hero.x < a + 13 {
@@ -277,6 +281,8 @@ fn main() {
                         if state.hero.x < a+18 {
                             state.hero.x += 1;
                         }
+                    } else if state.hero.y ==  b+1 {
+                        state.hero.x += 1
                     },
                     _ => {} 
                 }
@@ -303,3 +309,6 @@ fn main() {
     }
     endwin();
 }
+
+//TODO: Move each part of main() to lib rs in different structs and functions
+
