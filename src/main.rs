@@ -2,6 +2,15 @@ extern crate pancurses;
 use pancurses::{initscr, endwin, Input, noecho, curs_set, Window};
 use std::time::{Duration, SystemTime};
 
+mod upbutton;
+use crate::upbutton::up_button;
+mod downbutton;
+use crate::downbutton::down_button;
+mod leftbutton;
+use crate::leftbutton::left_button;
+mod rightbutton;
+use crate::rightbutton::right_button;
+
 const HEAD_SYMBOL: char = 'O';
 const WORMMAN: char = 'S';
 const LADDER_UP: char = 'H';
@@ -182,52 +191,12 @@ fn main() {
                 
                 // Update position based on keyi and position
                 match c_lower {
-                    c if c == UP_KEY => if (state.hero.y == b && state.hero.x == a+5) || (state.hero.y == b-1 && state.hero.x == a+12) || (state.hero.y == b-2 && state.hero.x == a+12) || (state.hero.y == b-3 && state.hero.x == a+12) { 
-                        state.hero.y -= 1 
-                    } else if state.hero.y == b+1 && state.hero.x == a-3 {
-                        state.hero.y = b-1;
-                        state.hero.x = a-5;
-                    },
-                    c if c == DOWN_KEY => if (state.hero.y == b-1 && state.hero.x == a+5) || (state.hero.y == b-2 && state.hero.x == a+12) || (state.hero.y == b-3 && state.hero.x == a+12) || (state.hero.y == b-4 && state.hero.x == a+12) { state.hero.y += 1 } else if state.hero.y == b-1 && state.hero.x == a-5 {
-                        state.hero.y = b+1;
-                        state.hero.x = a-3;
-                    },
-                    c if c == LEFT_KEY => if state.hero.y == b { 
-                        if state.hero.x > a-1  {
-                            state.hero.x -= 1;
-                        } 
-                    } else if state.hero.y ==  b-1 { 
-                        if state.hero.x > a-7 {
-                        state.hero.x -= 1;
-                        }
-                    } else if state.hero.y == b-2 {
-                        if state.hero.x > a+11 {
-                        state.hero.x -= 1;
-                        }
-                    }
-                    else if state.hero.y == b-4 {
-                        if state.hero.x > a+6 {
-                            state.hero.x -= 1;
-                        } 
-                    } else if state.hero.y ==  b+1 {
-                        state.hero.x -=1
-                    },
-                    c if c == RIGHT_KEY  => if state.hero.y == b || state.hero.y == b - 1 { 
-                        if state.hero.x < a + 13 {
-                            state.hero.x += 1;
-                        }
-                    } else if state.hero.y == b-2 {
-                        if state.hero.x < a+13 {
-                        state.hero.x += 1;
-                        }
-                    } else if state.hero.y == b-4 {
-                        if state.hero.x < a+18 {
-                            state.hero.x += 1;
-                        }
-                    } else if state.hero.y ==  b+1 {
-                        state.hero.x += 1
-                    },
-                    _ => {} 
+                    c if c == UP_KEY => up_button(&mut state, a, b),
+
+                    c if c == DOWN_KEY => down_button(&mut state, a, b),
+                       
+                    c if c == LEFT_KEY => left_button(&mut state, a, b),                     
+                    c if c == RIGHT_KEY  => right_button(&mut state, a, b),                    _ => {} 
                 }
          
                 // Draw character at new position
